@@ -1,0 +1,6 @@
+{
+  "webhook_url": "https://djoere.app.n8n.cloud/webhook/5fd94198-71d7-49e2-9bd4-2f18a2731106",
+  "webhook_path": "5fd94198-71d7-49e2-9bd4-2f18a2731106",
+  "method": "POST",
+  "description": "Triggers AI email generation for campaigns"
+}

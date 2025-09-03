@@ -1,0 +1,329 @@
+{
+  "name": "BUILDRS X CONVEX: Email Campagne Aanmaak Flow (AI GENERATED EMAIL BODY)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "5fd94198-71d7-49e2-9bd4-2f18a2731106",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        -60
+      ],
+      "id": "8f163636-23ad-489f-8c29-eeb7cfff90d0",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You're an AI outbound expert helping me write informal, high-converting cold emails to B2B prospects in Dutch. Use the exact structure and rules below.",
+              "role": "system"
+            },
+            {
+              "content": "=Je schrijft namens mij korte, informele en converterende cold e-mails voor B2B prospects in Nederland. Gebruik de exacte structuur en regels hieronder. De ijsbreker (persoonlijke opening) wordt later gegenereerd \u2014 begin daar dus niet mee.\n\nPropositie:\n{{ $json.description }}\n\nEn dit is de doelgroep waar we de campagne op inzetten:\nIndustrie: {{ $json.audience_filter.industry[0] }}\n\nSubindustrie: {{ $json.audience_filter.subindustry }}\n\nFuncties:\n{{ $json.audience_filter.function_group }}\n\nBedrijven met {{ $json.audience_filter.company_size_min }} tot {{ $json.audience_filter.company_size_max }} medewerkers\n\n\u270d\ufe0f STRUCTUUR VAN DE E-MAIL\n\nGebruik deze vier onderdelen in volgorde:\n\n    Identify: Wat doe ik? Zeg het concreet, menselijk en to-the-point (bijv. \u201cIk bouw een AI die X doet\u201d)\n\n    Value: Wat levert het op? Tijdwinst, omzetgroei, gemak, minder fouten etc.\n\n    Social proof (optioneel): Verwerk maximaal 1\u20132 klantnamen uit de context\n\n    Ask/Offer: Eindig met een zachte, nieuwsgierige uitnodiging (bijv. \u201cZou het interessant zijn als ik het een keer laat zien?\u201d)\n\n\ud83c\udfaf EXTRA STIJL- EN SCHRIJFRICHTLIJNEN\n\n    Taal: Nederlands\n\n    Tone of voice: informeel, persoonlijk, direct\n\n    Schrijf vanuit \u201cik\u201d, nooit \u201cwij\u201d\n\n    Max. 80 woorden voor de pitch, 70 voor de follow-up\n\n    Geen openingszin (die komt later als ijsbreker), geen afsluiting\n\n    Houd het menselijk en direct, zonder verkooppraatjes\n\n    Vermijd vage woorden (\u201ceffici\u00ebnt\u201d, \u201cinnovatief\u201d) tenzij gekoppeld aan een concreet voorbeeld\n\n    Benoem waar mogelijk 1\u20132 herkenbare processen of taken die worden geautomatiseerd of verbeterd\n\n    Laat zien dat ik vergelijkbare bedrijven help \u2014 je mag stevig impliceren dat het ook voor hen relevant is\n\n    Gebruik sociale bewijslast als het voorkomt in de context, maar verzin niets\n\n\ud83e\udde0 Alex Hormozi-principes\n\n    Zeg exact wat ik doe, voor wie, en wat het oplevert\n\n    Zet de prospect centraal: hoe verandert h\u00fan situatie?\n\n    Gebruik beknopte taal, geen \u201csalesy\u201d frictie\n\n    Laat direct zien waarom dit n\u00fa relevant is\n\n    Focus op \u201cvalue at a glance\u201d \u2013 begrijp het in 5 seconden\n\n\ud83d\udcec SUBJECT LINE RICHTLIJNEN\n\n    Persoonlijk, intrigerend, menselijk\n\n    Geen hoofdletters of uitroeptekens\n\n    Geen clickbait of salesachtige toon\n\n    Voorbeelden:\n\n        Idee voor jullie?\n\n        Te vroeg voor dit?\n\n        Dit viel me op bij jullie\n\n\ud83d\udd01 FOLLOW-UP RICHTLIJNEN\n\n    Kort, informeel, vriendelijk\n\n    Verwijs subtiel naar eerdere mail (\u201cZag dat ik nog geen reactie had\u2026\u201d)\n\n    Herhaal de waarde kort en eindig nieuwsgierig (\u201cZou je het interessant vinden om daar eens kort over te sparren?\u201d)\n\n\ud83d\udce6 OUTPUTSTRUCTUUR\n\n{\n  \"emailBody\": \"First line\nSecond line\nThird line\"\n}\n\n\nGenereer altijd 2 varianten: A en B.\n\nVariant A\nSubject line:\n[onderwerpregel A]\nE-mail:\n[pitch A, zonder ijsbreker]\nFollow-up:\n[follow-up tekst A]\n\nVariant B\nSubject line:\n[onderwerpregel B]\nE-mail:\n[pitch B, zonder ijsbreker]\nFollow-up:\n[follow-up tekst B]\n\n\ud83d\udcd0 TECHNISCHE FORMATTERINGSREGELS VOOR JSON OUTPUT\n\n    Geef de output als geldig JSON-object.\n\n    Gebruik g\u00e9\u00e9n codeblokken, markdown of extra uitleg.\n\n    De output moet exact voldoen aan onderstaand format, met dubbele quotes om keys \u00e9n values.\n\n    Gebruik \\n voor regelafbrekingen in de email en follow-up velden.\n\n    Gebruik geen echte linebreaks (druk op Enter) in de JSON zelf \u2014 houd het op \u00e9\u00e9n regel waar nodig.\n\n    Alle waarden moeten strings zijn (behalve als expliciet anders vermeld).\n\n    Speciale tekens moeten correct geescaped zijn (zoals dubbele quotes binnen een string).\n\n    Geef exact deze structuur:\n\n{\n  \"variantA\": {\n    \"subject_A\": \"\u2026\",\n    \"email_A\": \"\u2026\",\n    \"followUp_A\": \"\u2026\"\n  },\n  \"variantB\": {\n    \"subject_B\": \"\u2026\",\n    \"email_B\": \"\u2026\",\n    \"followUp_B\": \"\u2026\"\n  }\n}\n\nLaat alleen deze JSON zien als output."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        720,
+        -60
+      ],
+      "id": "7e54186c-22ca-4194-b15a-fb57e1c0e503",
+      "name": "Email Copy Generator",
+      "credentials": {
+        "openAiApi": {
+          "id": "xfUMeXyB9r2pgOLu",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "clients",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.body.campaign.client_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        180,
+        -60
+      ],
+      "id": "1d91a503-1c0a-46b7-a177-b31f24387256",
+      "name": "Get: Client",
+      "credentials": {
+        "supabaseApi": {
+          "id": "H72HwufKFak0biGR",
+          "name": "BUILDRS X SUPABASE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "campaigns",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.body.campaign_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        180,
+        -220
+      ],
+      "id": "b60c53a0-e4fa-48ff-9dab-ea54d445810b",
+      "name": "Get: Campaign",
+      "credentials": {
+        "supabaseApi": {
+          "id": "H72HwufKFak0biGR",
+          "name": "BUILDRS X SUPABASE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "propositions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.body.campaign.proposition_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        180,
+        120
+      ],
+      "id": "ccbb919d-675c-4fc0-848c-42dc4030d143",
+      "name": "Get: Propositions",
+      "credentials": {
+        "supabaseApi": {
+          "id": "H72HwufKFak0biGR",
+          "name": "BUILDRS X SUPABASE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        460,
+        -60
+      ],
+      "id": "6ffaec6b-da04-4fce-be54-77e694211468",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawContent = items[0].json.message.content;\nlet parsed;\ntry {\n  parsed = JSON.parse(rawContent);\n} catch (e) {\n  throw new Error('Invalid JSON in content');\n}\n\nconst keyMap = {\n  'variantA': {\n    subject: 'subject_A',\n    emailBody: 'email_A',\n    followUpBody: 'followUp_A',\n    label: 'Variant A'\n  },\n  'variantB': {\n    subject: 'subject_B',\n    emailBody: 'email_B',\n    followUpBody: 'followUp_B',\n    label: 'Variant B'\n  }\n};\n\nconst parsedVariants = Object.entries(parsed).map(([key, value]) => {\n  const map = keyMap[key] || {};\n  return {\n    variantName: map.label || key,\n    subject: value[map.subject] || null,\n    emailBody: value[map.emailBody] || null,\n    followUpBody: value[map.followUpBody] || null\n  };\n});\n\nreturn [{ json: { variants: parsedVariants } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -60
+      ],
+      "id": "b4e5b455-2e7b-4c2f-8e12-b3aceb1d272b",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "campaigns",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get: Campaign').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "email_a",
+              "fieldValue": "={{ $json.variants[0].emailBody }}"
+            },
+            {
+              "fieldId": "subject_a",
+              "fieldValue": "={{ $json.variants[0].subject }}"
+            },
+            {
+              "fieldId": "followup_a",
+              "fieldValue": "={{ $json.variants[0].followUpBody }}"
+            },
+            {
+              "fieldId": "email_b",
+              "fieldValue": "={{ $json.variants[1].emailBody }}"
+            },
+            {
+              "fieldId": "subject_b",
+              "fieldValue": "={{ $json.variants[1].subject }}"
+            },
+            {
+              "fieldId": "followup_b",
+              "fieldValue": "={{ $json.variants[1].followUpBody }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        -60
+      ],
+      "id": "dd5e13ae-52be-4296-99c6-35c198538bc0",
+      "name": "Update: Campaign with email body",
+      "credentials": {
+        "supabaseApi": {
+          "id": "H72HwufKFak0biGR",
+          "name": "BUILDRS X SUPABASE"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get: Propositions",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get: Client",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get: Campaign",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get: Client": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get: Propositions": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Get: Campaign": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Email Copy Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Copy Generator": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Update: Campaign with email body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: Campaign with email body": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "tags": []
+}

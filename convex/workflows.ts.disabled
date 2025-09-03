@@ -1,0 +1,355 @@
+import { WorkflowManager } from "@convex-dev/workflow";
+import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { components } from "./_generated/api";
+
+export const workflow = new WorkflowManager(components.workflow);
+
+// ===============================
+// EMAIL CAMPAIGN WORKFLOW
+// ===============================
+
+export const emailCampaignWorkflow = workflow.define({
+  args: {
+    campaignId: v.id("campaigns"),
+    contactIds: v.array(v.id("contacts")),
+    clientId: v.id("clients"),
+  },
+  handler: async (step, args) => {
+    // Step 1: Prepare campaign data
+    const campaignData = await step.runAction("prepare-campaign", internal.campaigns.getCampaignDetails, {
+        campaignId: args.campaignId,
+      });
+    });
+
+    if (!campaignData || !campaignData.isActive) {
+      throw new Error("Campaign not active or not found");
+    }
+
+    // Step 2: Process contacts in batches
+    const batchSize = 50;
+    const contactBatches = [];
+    
+    for (let i = 0; i < args.contactIds.length; i += batchSize) {
+      contactBatches.push(args.contactIds.slice(i, i + batchSize));
+    }
+
+    const results = [];
+    for (const [batchIndex, batch] of contactBatches.entries()) {
+      // Step 3: Send emails for this batch
+      const batchResult = await ctx.step(`send-batch-${batchIndex}`, async () => {
+        return await ctx.runMutation(internal.campaigns.sendEmailBatch, {
+          campaignId: args.campaignId,
+          contactIds: batch,
+          clientId: args.clientId,
+        });
+      });
+
+      results.push(batchResult);
+
+      // Step 4: Wait between batches to avoid rate limits
+      if (batchIndex < contactBatches.length - 1) {
+        await ctx.step(`wait-between-batches-${batchIndex}`, async () => {
+          await ctx.sleep("5 minutes");
+        });
+      }
+    }
+
+    // Step 5: Update campaign statistics
+    await ctx.step("update-campaign-stats", async () => {
+      return await ctx.runMutation(internal.campaigns.updateCampaignStats, {
+        campaignId: args.campaignId,
+        emailsSent: args.contactIds.length,
+        batchResults: results,
+      });
+    });
+
+    return {
+      success: true,
+      emailsSent: args.contactIds.length,
+      batchesProcessed: contactBatches.length,
+    };
+  },
+});
+
+// ===============================
+// LEAD NURTURING WORKFLOW
+// ===============================
+
+export const leadNurturingWorkflow = workflow.define({
+  args: {
+    contactId: v.id("contacts"),
+    clientId: v.id("clients"),
+    nurturingSequence: v.array(v.object({
+      stepName: v.string(),
+      delayDays: v.number(),
+      actionType: v.union(v.literal("email"), v.literal("linkedin"), v.literal("followup")),
+      templateId: v.optional(v.id("automationTemplates")),
+    })),
+  },
+  handler: async (step, args) => {
+    // Step 1: Validate contact
+    const contact = await ctx.step("validate-contact", async () => {
+      return await ctx.runQuery(internal.contacts.getContactById, {
+        contactId: args.contactId,
+      });
+    });
+
+    if (!contact || contact.status === "converted") {
+      return { success: false, reason: "Contact not eligible for nurturing" };
+    }
+
+    const results = [];
+
+    // Execute nurturing sequence
+    for (const [stepIndex, step] of args.nurturingSequence.entries()) {
+      // Wait for the specified delay (except first step)
+      if (stepIndex > 0) {
+        await ctx.step(`wait-${step.stepName}`, async () => {
+          await ctx.sleep(`${step.delayDays} days`);
+        });
+      }
+
+      // Check if contact is still eligible
+      const currentContact = await ctx.step(`check-contact-${stepIndex}`, async () => {
+        return await ctx.runQuery(internal.contacts.getContactById, {
+          contactId: args.contactId,
+        });
+      });
+
+      if (!currentContact || currentContact.status === "converted" || currentContact.status === "do_not_contact") {
+        results.push({
+          step: step.stepName,
+          skipped: true,
+          reason: "Contact no longer eligible",
+        });
+        break;
+      }
+
+      // Execute the nurturing action
+      const actionResult = await ctx.step(`execute-${step.stepName}`, async () => {
+        switch (step.actionType) {
+          case "email":
+            return await ctx.runMutation(internal.campaigns.sendNurturingEmail, {
+              contactId: args.contactId,
+              templateId: step.templateId,
+              clientId: args.clientId,
+            });
+          case "linkedin":
+            return await ctx.runMutation(internal.campaigns.sendLinkedInMessage, {
+              contactId: args.contactId,
+              templateId: step.templateId,
+              clientId: args.clientId,
+            });
+          case "followup":
+            return await ctx.runMutation(internal.contacts.createFollowupTask, {
+              contactId: args.contactId,
+              clientId: args.clientId,
+              note: `Nurturing step: ${step.stepName}`,
+            });
+          default:
+            throw new Error(`Unknown action type: ${step.actionType}`);
+        }
+      });
+
+      results.push({
+        step: step.stepName,
+        success: true,
+        result: actionResult,
+      });
+    }
+
+    return {
+      success: true,
+      contactId: args.contactId,
+      stepsCompleted: results.length,
+      results,
+    };
+  },
+});
+
+// ===============================
+// BULK LEAD CONVERSION WORKFLOW
+// ===============================
+
+export const bulkLeadConversionWorkflow = workflow.define({
+  args: {
+    clientId: v.id("clients"),
+    leadIds: v.array(v.id("leads")),
+    conversionSettings: v.object({
+      maxCreditsToUse: v.number(),
+      priorityFunctionGroups: v.array(v.string()),
+      skipDuplicates: v.boolean(),
+    }),
+  },
+  handler: async (step, args) => {
+    // Step 1: Validate client credits
+    const client = await ctx.step("validate-credits", async () => {
+      return await ctx.runQuery(internal.clients.getClientById, {
+        clientId: args.clientId,
+      });
+    });
+
+    if (!client || client.credits < args.conversionSettings.maxCreditsToUse) {
+      throw new Error("Insufficient credits for bulk conversion");
+    }
+
+    // Step 2: Process leads in smaller batches
+    const batchSize = 25;
+    const leadBatches = [];
+    
+    for (let i = 0; i < args.leadIds.length; i += batchSize) {
+      leadBatches.push(args.leadIds.slice(i, i + batchSize));
+    }
+
+    const conversionResults = [];
+    let totalCreditsUsed = 0;
+
+    for (const [batchIndex, batch] of leadBatches.entries()) {
+      // Check if we still have credits
+      if (totalCreditsUsed >= args.conversionSettings.maxCreditsToUse) {
+        break;
+      }
+
+      const batchResult = await ctx.step(`convert-batch-${batchIndex}`, async () => {
+        return await ctx.runMutation(internal.leadConversion.convertLeadBatch, {
+          clientId: args.clientId,
+          leadIds: batch,
+          settings: args.conversionSettings,
+          maxCredits: args.conversionSettings.maxCreditsToUse - totalCreditsUsed,
+        });
+      });
+
+      conversionResults.push(batchResult);
+      totalCreditsUsed += batchResult.creditsUsed || 0;
+
+      // Small delay between batches
+      if (batchIndex < leadBatches.length - 1 && totalCreditsUsed < args.conversionSettings.maxCreditsToUse) {
+        await ctx.step(`wait-batch-${batchIndex}`, async () => {
+          await ctx.sleep("30 seconds");
+        });
+      }
+    }
+
+    // Step 3: Update client statistics
+    await ctx.step("update-client-stats", async () => {
+      return await ctx.runMutation(internal.clients.updateBulkConversionStats, {
+        clientId: args.clientId,
+        creditsUsed: totalCreditsUsed,
+        leadsProcessed: conversionResults.reduce((sum, result) => sum + (result.leadsProcessed || 0), 0),
+        contactsCreated: conversionResults.reduce((sum, result) => sum + (result.contactsCreated || 0), 0),
+      });
+    });
+
+    return {
+      success: true,
+      totalCreditsUsed,
+      batchesProcessed: conversionResults.length,
+      results: conversionResults,
+    };
+  },
+});
+
+// ===============================
+// DEAL PIPELINE AUTOMATION WORKFLOW
+// ===============================
+
+export const dealPipelineWorkflow = workflow.define({
+  args: {
+    dealId: v.id("deals"),
+    clientId: v.id("clients"),
+    automationRules: v.array(v.object({
+      triggerStage: v.string(),
+      targetStage: v.string(),
+      delayDays: v.number(),
+      conditions: v.array(v.string()),
+      actions: v.array(v.object({
+        type: v.string(),
+        data: v.any(),
+      })),
+    })),
+  },
+  handler: async (step, args) => {
+    // Step 1: Get current deal state
+    const deal = await ctx.step("get-deal", async () => {
+      return await ctx.runQuery(internal.deals.getDealById, {
+        dealId: args.dealId,
+      });
+    });
+
+    if (!deal) {
+      throw new Error("Deal not found");
+    }
+
+    const automationResults = [];
+
+    // Process automation rules sequentially
+    for (const [ruleIndex, rule] of args.automationRules.entries()) {
+      // Wait for delay
+      if (rule.delayDays > 0) {
+        await ctx.step(`wait-rule-${ruleIndex}`, async () => {
+          await ctx.sleep(`${rule.delayDays} days`);
+        });
+      }
+
+      // Check current deal state and conditions
+      const currentDeal = await ctx.step(`check-deal-${ruleIndex}`, async () => {
+        return await ctx.runQuery(internal.deals.getDealById, {
+          dealId: args.dealId,
+        });
+      });
+
+      if (!currentDeal || currentDeal.stage !== rule.triggerStage) {
+        automationResults.push({
+          rule: ruleIndex,
+          skipped: true,
+          reason: "Deal stage changed or deal removed",
+        });
+        continue;
+      }
+
+      // Execute rule actions
+      const actionResults = [];
+      for (const action of rule.actions) {
+        const actionResult = await ctx.step(`execute-action-${ruleIndex}-${action.type}`, async () => {
+          switch (action.type) {
+            case "move_stage":
+              return await ctx.runMutation(internal.deals.updateDealStage, {
+                dealId: args.dealId,
+                newStage: rule.targetStage,
+                reason: "Automated pipeline progression",
+              });
+            case "send_notification":
+              return await ctx.runMutation(internal.deals.sendDealNotification, {
+                dealId: args.dealId,
+                clientId: args.clientId,
+                message: action.data.message,
+              });
+            case "create_task":
+              return await ctx.runMutation(internal.deals.createDealTask, {
+                dealId: args.dealId,
+                clientId: args.clientId,
+                task: action.data,
+              });
+            default:
+              return { success: false, error: `Unknown action type: ${action.type}` };
+          }
+        });
+        actionResults.push(actionResult);
+      }
+
+      automationResults.push({
+        rule: ruleIndex,
+        success: true,
+        actions: actionResults,
+      });
+    }
+
+    return {
+      success: true,
+      dealId: args.dealId,
+      rulesProcessed: automationResults.length,
+      results: automationResults,
+    };
+  },
+});

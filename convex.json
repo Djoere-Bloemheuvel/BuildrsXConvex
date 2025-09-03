@@ -1,0 +1,7 @@
+{
+  "functions": "./convex",
+  "httpRoutes": "./convex/http.ts",
+  "node": {
+    "18": true
+  }
+}
